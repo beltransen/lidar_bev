@@ -1,0 +1,47 @@
+<launch>
+
+    <!--KITTI topics and frames-->
+    <arg name="cloud_topic" default="/velodyne_points" />
+    <arg name="lidar_tf_frame" default="/velodyne" />
+    <arg name="camera_tf_frame" default="/stereo_camera" />
+
+    <!-- MAP CONFIGURATION -->
+    <arg name="camera_fov" default="110.0"/>
+    <arg name="intensity_threshold" default="0.05" />
+    <arg name="cell_size" default="0.05" />
+    <arg name="cell_size_height_map" default="0.25" />
+    <arg name="max_height" default="3.0" />
+    <arg name="grid_dim" default="70" />
+    <arg name="grid_dim_height_map" default="300" />
+    <arg name="height_threshold" default="0.10" />
+    <arg name="crop_180" default="true" />
+    <arg name="remove_floor" default="false" />
+
+    <!-- HDL-32E-->
+    <arg name="planes" default="32" />
+    <arg name="h_res" default="0.2" />
+    <arg name="v_res" default="1.33" />
+    <arg name="low_opening" default="-30.67" />
+    <arg name="max_expected_intensity" default="30" />
+
+    <node pkg="lidar_bev" type="lidar_bev" name="lidar_bev" output="screen">
+        <param name="cloud_topic" value="$(arg cloud_topic)"/>
+        <param name="lidar_tf_frame" value="$(arg lidar_tf_frame)"/>
+        <param name="camera_tf_frame" value="$(arg camera_tf_frame)"/>
+        <param name="camera_fov" value="$(arg camera_fov)"/>
+        <param name="planes" value="$(arg planes)"/>
+        <param name="h_res" value="$(arg h_res)"/>
+        <param name="v_res" value="$(arg v_res)"/>
+        <param name="low_opening" value="$(arg low_opening)"/>
+        <param name="cell_size" value="$(arg cell_size)"/>
+        <param name="grid_dim" value="$(arg grid_dim)"/>
+        <param name="max_height" value="$(arg max_height)"/>
+        <param name="height_threshold" value="$(arg height_threshold)"/>
+        <param name="cell_size_height_map" value="$(arg cell_size_height_map)"/>
+        <param name="grid_dim_height_map" value="$(arg grid_dim_height_map)"/>
+        <param name="max_expected_intensity" value="$(arg max_expected_intensity)"/>
+        <param name="crop_180" value="$(arg crop_180)"/>
+        <param name="remove_floor" value="$(arg remove_floor)"/>
+    </node>
+
+</launch>

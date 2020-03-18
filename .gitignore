@@ -1,0 +1,23 @@
+# training stuff
+training_images/
+
+cmake_install.cmake
+CMakeLists.txt.user*
+CMakeCache.txt
+CMakeFiles/
+build/
+bin/
+msg_gen/
+.DS_Store
+.cproject
+.project
+.pydevproject
+*~
+*/*pyc
+
+*.cpp.autosave.*
+.idea/
+*.pyc
+.vscode
+
+maps

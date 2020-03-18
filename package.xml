@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<package>
+  <name>lidar_bev</name>
+  <version>0.0.1</version>
+  <description>The lidar_bev package</description>
+  <author>Jorge Beltrán</author>
+  <author>Carlos Guindel</author>
+  <author>Francisco M. Moreno</author>
+  <author>Daniel Cruzado</author>
+  <maintainer email="jbeltran@ing.uc3m.es">Jorge Beltran</maintainer>
+  <maintainer email="cguindel@ing.uc3m.es">Carlos Guindel</maintainer>
+
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>rosbag</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>tf2_msgs</build_depend>
+  <build_depend>tf</build_depend>
+
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>rosbag</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>tf2_msgs</run_depend>
+</package>
