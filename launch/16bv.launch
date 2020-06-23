@@ -11,7 +11,7 @@
     <arg name="cell_size" default="0.05" />
     <arg name="cell_size_height_map" default="0.25" />
     <arg name="max_height" default="3.0" />
-    <arg name="num_slices" default="3" />
+    <arg name="num_slices" default="1" />
     <arg name="grid_dim" default="70" />
     <arg name="grid_dim_height_map" default="300" />
     <arg name="height_threshold" default="0.10" />

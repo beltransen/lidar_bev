@@ -2,8 +2,8 @@
     <arg name="kitti_dir" default="kitti" />
     <arg name="split_dir" default="training" />
     <arg name="saving_path" default="bev_images" />
-    <!--arg name="camera_fov" default="110.0" /-->
-    <arg name="camera_fov" default="360.0" />
+
+    <arg name="camera_fov" default="110.0" />
     <arg name="planes" default="64" />
     <arg name="h_res" default="0.2" />
     <arg name="v_res" default="0.4" />
