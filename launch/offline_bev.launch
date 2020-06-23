@@ -1,29 +1,32 @@
 <launch>
-    <arg name="rosbag_name" default="/media/datasets/birdview/kitti_obj_training.bag" />
-    <arg name="output_path" default="/media/datasets/birdview/" />
-    <arg name="cloud_topic" default="/velodyne_points" />
-    <arg name="lidar_tf_frame" default="lidar" />
-    <arg name="camera_tf_frame" default="stereo_camera" />
-    <arg name="camera_fov" default="110.0" />
+    <arg name="kitti_dir" default="kitti" />
+    <arg name="split_dir" default="training" />
+    <arg name="saving_path" default="bev_images" />
+    <!--arg name="camera_fov" default="110.0" /-->
+    <arg name="camera_fov" default="360.0" />
     <arg name="planes" default="64" />
     <arg name="h_res" default="0.2" />
     <arg name="v_res" default="0.4" />
     <arg name="low_opening" default="-24.9" />
     <arg name="cell_size" default="0.05" />
-    <arg name="grid_dim" default="70" />
+    <arg name="grid_dim" default="140" />
+    <arg name="grid_min_x" default="0" />
+    <arg name="grid_max_x" default="70" />
+    <arg name="grid_min_y" default="-35" />
+    <arg name="grid_max_y" default="35" />
     <arg name="max_height" default="3.0" />
+    <arg name="min_height" default="-9999.9" />
+    <arg name="num_slices" default="1" />
     <arg name="height_threshold" default="0.10" />
     <arg name="cell_size_height_map" default="0.25" />
     <arg name="grid_dim_height_map" default="300" />
-    <arg name="crop_180" default="true" />
+    <arg name="get_ground" default="false" />
     <arg name="remove_floor" default="false" />
 
     <node pkg="lidar_bev" type="offline_bev" name="offline_bev" output="screen">
-        <param name="rosbag_name" value="$(arg rosbag_name)"/>
-        <param name="output_path" value="$(arg output_path)"/>
-        <param name="cloud_topic" value="$(arg cloud_topic)"/>
-        <param name="lidar_tf_frame" value="$(arg lidar_tf_frame)"/>
-        <param name="camera_tf_frame" value="$(arg camera_tf_frame)"/>
+        <param name="kitti_dir" value="$(arg kitti_dir)"/>
+        <param name="split_dir" value="$(arg split_dir)"/>
+        <param name="saving_path" value="$(arg saving_path)"/>
         <param name="camera_fov" value="$(arg camera_fov)"/>
         <param name="planes" value="$(arg planes)"/>
         <param name="h_res" value="$(arg h_res)"/>
@@ -31,11 +34,17 @@
         <param name="low_opening" value="$(arg low_opening)"/>
         <param name="cell_size" value="$(arg cell_size)"/>
         <param name="grid_dim" value="$(arg grid_dim)"/>
+        <param name="grid_min_x" value="$(arg grid_min_x)"/>
+        <param name="grid_max_x" value="$(arg grid_max_x)"/>
+        <param name="grid_min_y" value="$(arg grid_min_y)"/>
+        <param name="grid_max_y" value="$(arg grid_max_y)"/>
         <param name="max_height" value="$(arg max_height)"/>
+        <param name="min_height" value="$(arg min_height)"/>
+        <param name="num_slices" value="$(arg num_slices)"/>
         <param name="height_threshold" value="$(arg height_threshold)"/>
         <param name="cell_size_height_map" value="$(arg cell_size_height_map)"/>
         <param name="grid_dim_height_map" value="$(arg grid_dim_height_map)"/>
-        <param name="crop_180" value="$(arg crop_180)"/>
+        <param name="get_ground" value="$(arg get_ground)"/>
         <param name="remove_floor" value="$(arg remove_floor)"/>
     </node>
 

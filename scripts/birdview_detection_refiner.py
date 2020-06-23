@@ -16,7 +16,6 @@ class BirdviewDetectionRefiner:
         self.lidar_h = lidar_h
         (self.bvheight, self.bvwidth, self.channels) = self.bv_image.shape
 
-
     def refine_detection(self, obj):
         # Bird view: Vertices
         bv_x1 = obj.bbox.x_offset
@@ -92,7 +91,6 @@ class BirdviewDetectionRefiner:
         obj.yaw = -obj.alpha - math.pi/2
         obj.alpha = -obj.alpha - math.pi/2
 
-
     def nofloor_birdview(self):
         no_floor_img = np.copy(self.bv_image)
         lower = np.array([50, 0, 0])
@@ -101,7 +99,6 @@ class BirdviewDetectionRefiner:
         # Bitwise-AND mask and original image
         no_floor_img = cv2.bitwise_and(no_floor_img, no_floor_img, mask=mask)
         return no_floor_img
-
 
     # Refinement functions
     def _get_rotated_box(self, centroid, length, width, yaw):
@@ -126,7 +123,6 @@ class BirdviewDetectionRefiner:
 
         ctr = np.array([pt1, pt2, pt3, pt4]).reshape((-1, 1, 2)).astype(np.int32)
         return ctr
-
 
     def _compute_bbox_height(self, height, width, ref_width, yaw):
         yaw -= math.pi / 2
@@ -193,7 +189,6 @@ class BirdviewDetectionRefiner:
         if H - abs(w * math.sin(yaw)) < 0:
             return H
         return int((H - abs(w * math.sin(yaw))) / abs(math.cos(yaw)))
-
 
     def _compute_height(self, points, hard_low, soft_low, soft_high, hard_high):
         # Determine object height from the bv image

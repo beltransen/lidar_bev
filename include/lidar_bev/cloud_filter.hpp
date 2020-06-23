@@ -36,7 +36,7 @@ public:
     std::shared_ptr<cv::Mat> birdGround(double bv_cell_size, int ground_cell_span, double grid_dim);
 
     /* get the 2D grid birdview of the cloud with 3 channels (height, density, intensity) */
-    std::shared_ptr<cv::Mat> birdView(double cell_size, double max_height, double grid_dim);
+    std::shared_ptr<cv::Mat> birdView(double cell_size, double max_height, int num_slices, double grid_dim, bool sample_points=false);
 
     /* Remove all points below the given intensity threshold */
     void filterIntensities(double intensity_threshold);
@@ -49,7 +49,7 @@ public:
     void setVeloToBaseTransform(tf::StampedTransform base_velo_transform);
 
     /* Load values to the max points map, to later compute the density */
-    void initMaxPointsMap(int grid_dim, float cell_size, float z_min, float z_max, int planes,
+    void initMaxPointsMap(int grid_dim, float cell_size, float z_min, float z_max, int num_slices, int planes,
                           float low_angle, float h_res, float v_res);
 
     tf::StampedTransform getBaseVeloTF(){
@@ -71,7 +71,7 @@ private:
     float max_expected_intensity_;
 
     // matrix to keep the map of the max points that each cell can have
-    std::vector<std::vector<float> > max_points_map_;
+    std::vector<std::vector<std::vector<float> > > max_points_map_;
 
     /* Return true if the point is inside the camera FOV. Used to filter points in filterFOV */
     bool pointInCameraFov(pcl::PointXYZI p, double horizontal_fov);

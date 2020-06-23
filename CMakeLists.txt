@@ -68,10 +68,10 @@ add_definitions(
 )
 
 ## Declare a C++ library
-add_library(cloud_filter
+add_library(bev
   src/${PROJECT_NAME}/cloud_filter.cpp
 )
-target_link_libraries(cloud_filter
+target_link_libraries(bev
   ${catkin_LIBRARIES}
   ${OpenCV_LIBS}
 )
@@ -99,13 +99,13 @@ add_executable(lidar_bev src/lidar_bev.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(offline_bev
-  cloud_filter
+  bev
   ${catkin_LIBRARIES}
   ${OpenCV_LIBS}
 )
 
 target_link_libraries(lidar_bev
-  cloud_filter
+  bev
   ${catkin_LIBRARIES}
   ${OpenCV_LIBS}
 )

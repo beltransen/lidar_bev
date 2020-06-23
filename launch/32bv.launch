@@ -6,10 +6,12 @@
     <arg name="camera_tf_frame" default="/stereo_camera" />
 
     <!-- MAP CONFIGURATION -->
+    <arg name="camera_fov" default="110.0"/>
     <arg name="intensity_threshold" default="0.05" />
     <arg name="cell_size" default="0.05" />
     <arg name="cell_size_height_map" default="0.25" />
     <arg name="max_height" default="3.0" />
+    <arg name="num_slices" default="3" />
     <arg name="grid_dim" default="70" />
     <arg name="grid_dim_height_map" default="300" />
     <arg name="height_threshold" default="0.10" />
@@ -27,6 +29,7 @@
         <param name="cloud_topic" value="$(arg cloud_topic)"/>
         <param name="lidar_tf_frame" value="$(arg lidar_tf_frame)"/>
         <param name="camera_tf_frame" value="$(arg camera_tf_frame)"/>
+        <param name="camera_fov" value="$(arg camera_fov)"/>
         <param name="planes" value="$(arg planes)"/>
         <param name="h_res" value="$(arg h_res)"/>
         <param name="v_res" value="$(arg v_res)"/>
@@ -34,6 +37,7 @@
         <param name="cell_size" value="$(arg cell_size)"/>
         <param name="grid_dim" value="$(arg grid_dim)"/>
         <param name="max_height" value="$(arg max_height)"/>
+        <param name="num_slices" value="$(arg num_slices)"/>
         <param name="height_threshold" value="$(arg height_threshold)"/>
         <param name="cell_size_height_map" value="$(arg cell_size_height_map)"/>
         <param name="grid_dim_height_map" value="$(arg grid_dim_height_map)"/>
