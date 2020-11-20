@@ -34,8 +34,6 @@ int ground_cell_span;
 int grid_dim;
 int grid_min_x, grid_max_x, grid_min_y, grid_max_y;
 double max_height;
-double min_height;
-int num_slices;
 
 typedef cv::Vec<char, 6> Vec6c;
 
@@ -155,6 +153,7 @@ int main(int argc, char **argv){
     double h_res;
     double v_res;
     double low_opening;
+    int density_slices, intensity_slices, stdev_height_slices;
     bool split_channels;
     bool get_ground;
     bool remove_floor;
@@ -179,8 +178,9 @@ int main(int argc, char **argv){
     private_nh.param("grid_min_x", grid_min_x, MIN_CROP); // enable non-square BEV images by cropping on the bottom
     private_nh.param("grid_max_x", grid_max_x, MAX_CROP); // enable non-square BEV images by cropping on the top
     private_nh.param("max_height", max_height, 3.0);
-    private_nh.param("min_height", min_height, -9999.9);
-    private_nh.param("num_slices", num_slices, 3);
+    private_nh.param("density_slices", density_slices, 0);
+    private_nh.param("intensity_slices", intensity_slices, 0);
+    private_nh.param("stdev_height_slices", stdev_height_slices, 0);
     private_nh.param("height_threshold", height_threshold, 0.10);
     private_nh.param("cell_size_height_map", cell_size_height_map, 0.25);
     private_nh.param("grid_dim_height_map", grid_dim_height_map, 300);//300*cell_size = total pointcloud size
@@ -193,13 +193,35 @@ int main(int argc, char **argv){
         return 1;
     }
 
+    // Parse channels requirements
+    std::map<string, int> bev_channels;
+    bev_channels[DENSITY_CHANNEL] = density_slices;
+    bev_channels[INTENSITY_CHANNEL] = intensity_slices;
+    bev_channels[HEIGHT_DEV_CHANNEL] = stdev_height_slices;
+
+    // Build list of channels to compute
+    std::vector<std::string> channel_names;
+    channel_names.push_back("min_height");
+    channel_names.push_back("max_height");
+
+    for (int i = 0; i < density_slices; i++){
+        channel_names.push_back("dchop_" + to_string(i) + "_" + to_string(i+1));
+    }
+    for (int i = 0; i < intensity_slices; i++){
+        channel_names.push_back("ichop_" + to_string(i) + "_" + to_string(i+1));
+    }
+    for (int i = 0; i < stdev_height_slices; i++){
+        channel_names.push_back("hchop_" + to_string(i) + "_" + to_string(i+1));
+    }
+
+
     // Init the lidar - base transformation for the filter
     tf::StampedTransform base_velo_transform;
 
     // WARNING: lidar height fixed
     base_velo_transform.setOrigin(tf::Vector3(0.0, 0.0, 1.73));
     filter.setVeloToBaseTransform(base_velo_transform);
-    filter.initMaxPointsMap(grid_dim, cell_size, 0, max_height, num_slices, planes, low_opening, h_res, v_res);
+    filter.initMaxPointsMap(grid_dim, cell_size, 0, max_height, density_slices, planes, low_opening, h_res, v_res);
     cout << "Saving imgs in: " << saving_path << endl;
     mkdir(saving_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
@@ -245,17 +267,6 @@ int main(int argc, char **argv){
     }
 
     cout << "Processing pointclouds..." << endl;
-
-    // Build list of channels to compute
-    std::vector<std::string> channel_names;
-    if (min_height != -9999.9){
-        channel_names.push_back("min_height");
-    }
-    channel_names.push_back("max_height");
-    for (int i = 0; i < num_slices; i++){
-        channel_names.push_back("dchop_" + to_string(i) + "_" + to_string(i+1));
-    }
-    channel_names.push_back("avg_intensity");
 
     int frames = 0;
     string velo_dir = package_dir + "/" + kitti_dir + "/" + split_dir + "/velodyne/";
@@ -308,7 +319,7 @@ int main(int argc, char **argv){
             }
 
             // Compute the birdview
-            std::shared_ptr<cv::Mat> bird_view = filter.birdView(cell_size, max_height, num_slices, grid_dim);
+            std::shared_ptr<cv::Mat> bird_view = filter.birdView(cell_size, max_height, bev_channels, grid_dim);
 
             cv::Mat final_birdview = bird_view->clone();
 
@@ -367,10 +378,6 @@ int main(int argc, char **argv){
             // Save birdview images
             std::vector<cv::Mat> channels;
             cv::split(final_birdview, channels);
-            if (min_height == -9999.9){
-                channels.erase(channels.begin()); // First channel is min_height
-            }
-
             if (channels.size() == 3 && !split_channels){
                 // Single png image
                 cv::Mat three_ch;

@@ -182,16 +182,40 @@ std::shared_ptr<cv::Mat> CloudFilter::birdGround(double bv_cell_size, int ground
 
     return bird_ground;
 }
-std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_height, int num_slices, double grid_dim, bool sample_points){
+std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_height, std::map<string, int> channels, double grid_dim, bool sample_points){
     // TODO: Add an interpolation to fill the unknown cells
 
     int grid_cells = grid_dim / cell_size;
 
-    int num_channels = 3 + num_slices;
+
+    std::map<string,int>::iterator it;
+
+    int max_height_slices = 1; // Always computed
+    int min_height_slices = 1; // Always computed
+    int density_slices = 0;
+    int intensity_slices = 0;
+    int stdev_height_slices = 0;
+
+    it = channels.find(DENSITY_CHANNEL);
+    if(it!=channels.end()){
+        density_slices = it->second;
+    }
+    it = channels.find(INTENSITY_CHANNEL);
+    if(it!=channels.end()){
+        intensity_slices = it->second;
+    }
+    it = channels.find(HEIGHT_DEV_CHANNEL);
+    if(it!=channels.end()){
+        stdev_height_slices = it->second;
+    }
+
+    int num_channels = density_slices + intensity_slices + max_height_slices + min_height_slices + stdev_height_slices;
+    int num_slices = 3;
+
+    cout << "Num channels " << num_channels << endl;
 
     // The channels are: intensity, min_height, max_height, density per slice.
     std::shared_ptr<cv::Mat> bird_view(new cv::Mat(grid_cells, grid_cells, CV_8UC(num_channels)));
-    //std::cout << bird_view->rows << " " << bird_view->cols << " " << bird_view->channels() << " " << CV_8UC(num_channels) << std::endl;
 
     std::random_device rd;
     std::mt19937 mt(rd());
@@ -200,19 +224,21 @@ std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_heig
 
     int*** density = new int**[grid_cells];
     float*** height = new float**[grid_cells];
-    float** intensity = new float*[grid_cells];
+    std::vector<float>*** i_points;
+    std::vector<float>*** z_points;
 
     for (int i = 0; i < grid_cells; ++i)
     {
-        density[i] = new int*[grid_cells];
         height[i] = new float*[grid_cells];
-        intensity[i] = new float[grid_cells];
+        density[i] = new int*[grid_cells];
+        i_points[i] = new vector<float>*[grid_cells];
+        z_points[i] = new vector<float>*[grid_cells];
 
         for (int j = 0; j < grid_cells; ++j){
-            density[i][j] = new int[num_slices];
-        }
-        for (int j = 0; j < grid_cells; ++j){
             height[i][j] = new float[2];
+            density[i][j] = new int[density_slices];
+            i_points[i][j] = new vector<float>[stdev_height_slices];
+            z_points[i][j] = new vector<float>[stdev_height_slices];
         }
     }
 
@@ -221,14 +247,12 @@ std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_heig
     {
         for (int j = 0; j < grid_cells; ++j)
         {
-            for (int k = 0; k < num_slices; ++k)
-            {
+            for (int k = 0; k < density_slices; ++k){
                 density[i][j][k] = 0;
             }
 
             height[i][j][0] = 9999.9;
             height[i][j][1] = -9999.9;
-            intensity[i][j] = 0.0;
         }
     }
 
@@ -240,21 +264,29 @@ std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_heig
             int y = grid_cells/2 - point.y/cell_size;
 
             if (x >= 0 && x < grid_cells && y >= 0 && y < grid_cells){
-              bool chosen = true;
-              if (chosen){
-                  // Update cell min height
-                  height[x][y][0] = std::min(height[x][y][0], z);
-                  // Update cell max height
-                  height[x][y][1] = std::max(height[x][y][1], z);
-                  // Increment the number of points in the cell
-                  for (int k = 0; k < num_slices; k++){
-                    if (z > k*max_height/num_slices and z < (k+1)*max_height/num_slices)
-                        density[x][y][k]++;
-                  }
-                  // Update the cell intensity sum to later compute the mean
-                  intensity[x][y] += point.intensity/max_expected_intensity_;
 
-              }
+                // Update cell min height
+                height[x][y][0] = std::min(height[x][y][0], z);
+                // Update cell max height
+                height[x][y][1] = std::max(height[x][y][1], z);
+                // Increment the number of points in the cell
+                for (int k = 0; k < density_slices; k++){
+                    if (z > k*max_height/density_slices and z < (k+1)*max_height/density_slices){
+                        density[x][y][k]++;
+                    }
+                }
+                for (int k = 0; k < intensity_slices; k++){
+                    if (z > k*max_height/intensity_slices and z < (k+1)*max_height/intensity_slices){
+                        // Update the cell intensity sum to later compute the mean
+                        i_points[x][y][k].push_back(point.intensity);
+                    }
+                }
+                for (int k = 0; k < stdev_height_slices; k++){
+                    if (z > k*max_height/stdev_height_slices and z < (k+1)*max_height/stdev_height_slices){
+                        // Update the cell height sum to later compute the mean and stdev
+                        z_points[x][y][k].push_back(z);
+                    }
+                }
             }
         }
     }
@@ -270,24 +302,37 @@ std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_heig
             *mat_ptr++ = (uchar)(255 * height[i][j][0] / max_height);
             *mat_ptr++ = (uchar)(255 * height[i][j][1] / max_height);
 
-            int cell_density = 0;
-            for (int k = 0; k < num_slices; ++k){
+            for (int k = 0; k < density_slices; ++k){
                 // Limit the density to 255 (we should never have that many points in the same cell...)
                 int norm_factor = max_points_map_[i][j][k];
-
-                cell_density += density[i][j][k];
-                //              if(sample_points){
-                //                norm_factor = std::min(norm_factor, goal_max_points);
-                //              }
                 int points_cell_pixel = (float)density[i][j][k] / norm_factor * 255;
                 *mat_ptr++ = (uchar)std::min(points_cell_pixel, 255);
             }
-
-            // Compute the intensity mean for that cell given the cell density and normalize it to 0-255
-            float norm_intensity = 0;
-            norm_intensity = (cell_density > 0) ? std::min(255.f, (255 * intensity[i][j] / cell_density)) : 0;
-
-            *mat_ptr++ = (uchar)norm_intensity;
+            for (int k = 0; k < intensity_slices; ++k){
+                // Compute the intensity mean for that cell and slice given the point count (density) and normalize it to 0-255
+                float cell_intensity_mean = 0.f;
+                if(i_points[i][j][k].size()){
+                    float norm_factor = 255/max_expected_intensity_;
+                    cell_intensity_mean = std::accumulate(i_points[i][j][k].begin(), i_points[i][j][k].end(), 0.0) / i_points[i][j][k].size();
+                    cell_intensity_mean = cell_intensity_mean * norm_factor;
+                }
+                *mat_ptr++ = (uchar) std::min(cell_intensity_mean, 255.f);
+            }
+            for (int k = 0; k < stdev_height_slices; ++k){
+                // Compute the stdev for that cell and slice given the point count and normalize it to 0-255
+                float stdev = 0.f;
+                if(z_points[i][j][k].size()>0){
+                    float norm_factor = (float) max_height/stdev_height_slices * 255;
+                    float cell_height_mean = std::accumulate( z_points[i][j][k].begin(), z_points[i][j][k].end(), 0.0) / z_points[i][j][k].size();
+                    std::vector<float> diff(z_points[i][j][k].size());
+                    std::transform(z_points[i][j][k].begin(), z_points[i][j][k].end(), diff.begin(),
+                                   std::bind2nd(std::minus<float>(), cell_height_mean));
+                    float sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+                    stdev = std::sqrt(sq_sum / z_points[i][j][k].size());
+                    stdev = stdev * norm_factor;
+                }
+                *mat_ptr++ = (uchar) std::min(stdev, 255.f);
+            }
         }
     }
 
@@ -295,17 +340,22 @@ std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_heig
         for (int j = 0; j < grid_cells; ++j){
             delete [] density[i][j];
             delete [] height[i][j];
+            delete [] i_points[i][j];
+            delete [] z_points[i][j];
         }
     }
 
     for (int i = 0; i < grid_cells; ++i){
         delete [] density[i];
         delete [] height[i];
-        delete [] intensity[i];
+        delete [] i_points[i];
+        delete [] z_points[i];
     }
+
     delete [] density;
     delete [] height;
-    delete [] intensity;
+    delete [] i_points;
+    delete [] z_points;
 
     return bird_view;
 }
@@ -382,7 +432,7 @@ void CloudFilter::initMaxPointsMap(int grid_dim, float cell_size, float z_min, f
     python_cmd << " --velo_height " << velo_h.str();
     std::cout << "Required max_points map not found, creating map..." << std::endl;
     std::cout << python_cmd.str() << std::endl;
-    system(python_cmd.str().c_str());
+    int python_result = system(python_cmd.str().c_str());
 
     // Resize the matrix
     int grid_cells = grid_dim / cell_size;
@@ -429,56 +479,4 @@ void CloudFilter::initMaxPointsMap(int grid_dim, float cell_size, float z_min, f
         }
         f.close();
     }
-
-
-//    } else {
-//      std::cout << "Compute max_points with its corresponding python script and run this node again" << std::endl;
-//      exit(-1);
-//    }
-
-    /*std::cout << "Computing max points map..." << std::endl;
-    float cos_h_res = cos(h_res);
-    ros::Time init = ros::Time::now();
-    int num_plane = 0;
-    float x,y;
-    //std::ofstream myfile;
-    //myfile.open ("/home/lsi2/catkin_ws/src/didi_challenge/src/example.txt");
-    int grid_cells = grid_dim / cell_size;
-    std::cout << "Grid cells: " << grid_cells << ". Velodyne height: " << base_velo_transform_.getOrigin().z() << std::endl;
-
-    // Resize the matrix
-    max_points_map_.resize(grid_cells);
-    for (int i = 0; i < max_points_map_.size(); ++i)
-    {
-        max_points_map_[i].resize(grid_cells);
-    }
-
-    for (int i = 0; i < grid_cells; i++)
-    {
-        x = grid_cells * cell_size / 2 - i * cell_size;
-        for (int j = 0; j < grid_cells; j++)
-        {
-            y = grid_cells * cell_size / 2 - j * cell_size;
-            if (j == 0 && i == 0)
-            {
-                max_points_map_[i][j] = 1;
-            }
-            else
-            {
-                float distance = pow((pow(x, 2) + pow(y, 2)), 0.5); //get squared distance
-                float dispersion = pow(2 * pow(distance, 2) * (1 - cos_h_res), 0.5);
-
-                float angle = atan(base_velo_transform_.getOrigin().z() / distance) * 180 / M_PI;
-
-                num_plane = abs((low_opening - angle) / v_res);
-                float max_points = (planes - num_plane) * cell_size / dispersion;
-                max_points_map_[i][j] = max_points / 2; //limit it to a % of the max points possibles,
-                if (max_points_map_[i][j] < 1)
-                {
-                    max_points_map_[i][j] = 1;
-                }
-            }
-        }
-    }
-    std::cout << "Time consumed building the max points map: " << ros::Time::now() - init << std::endl;*/
 }

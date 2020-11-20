@@ -30,7 +30,7 @@ bool remove_floor;
 double cell_size,height_threshold,max_height,cell_size_height_map;
 int grid_dim,grid_dim_height_map;
 int ground_cell_span;
-int num_slices;
+int density_slices, intensity_slices, stdev_height_slices;
 
 void cloud_callback(const sensor_msgs::PointCloud2Ptr & cloud_msg){
 
@@ -53,7 +53,14 @@ void cloud_callback(const sensor_msgs::PointCloud2Ptr & cloud_msg){
         filter.removeFloor(cell_size_height_map, height_threshold, grid_dim_height_map);
     }
 
-    std::shared_ptr<Mat> bird_view = filter.birdView(cell_size, max_height, grid_dim, false);
+    // Compute the birdview
+    std::map<string, int> bev_channels;
+    bev_channels[DENSITY_CHANNEL] = density_slices;
+    bev_channels[INTENSITY_CHANNEL] = intensity_slices;
+    bev_channels[HEIGHT_DEV_CHANNEL] = stdev_height_slices;
+
+    std::shared_ptr<Mat> bird_view = filter.birdView(cell_size, max_height, bev_channels, grid_dim, false);
+    //std::shared_ptr<Mat> bird_view = filter.birdView(cell_size, max_height, grid_dim, false);
 
     int grid_cells = grid_dim / cell_size; // Number of col/rows of the birdview
 
@@ -127,7 +134,9 @@ int main(int argc, char *argv[])
     private_nh.param("cell_size_height_map", cell_size_height_map, 0.25);
     private_nh.param("height_threshold", height_threshold, 0.10);
     private_nh.param("max_height", max_height, 3.0);//not used, dont know if useful, there are buses that are quite high
-    private_nh.param("num_slices", num_slices, 3);//not used, dont know if useful, there are buses that are quite high
+    private_nh.param("density_slices", density_slices, 0);
+    private_nh.param("intensity_slices", intensity_slices, 0);
+    private_nh.param("stdev_height_slices", stdev_height_slices, 0);
     public_nh.param("grid_dim", grid_dim, 1000);//300*cell_size = total pointcloud size
     public_nh.param("/lidar_birdview/grid_dim", grid_dim, 1000);//300*cell_size = total pointcloud size
     private_nh.param("grid_dim_height_map", grid_dim_height_map, 300);//300*cell_size = total pointcloud size
@@ -139,7 +148,7 @@ int main(int argc, char *argv[])
     // Init the lidar - camera transformation for the filter
     filter.setIntensityNormalization(max_expected_intensity_);
     filter.initTF(lidar_tf_frame, camera_tf_frame);
-    filter.initMaxPointsMap(grid_dim, cell_size, 0, max_height, num_slices, planes, low_opening, h_res, v_res);
+    filter.initMaxPointsMap(grid_dim, cell_size, 0, max_height, density_slices, planes, low_opening, h_res, v_res);
 
     bird_view_pub = it.advertise("bird_view", 1);
     bird_ground_pub = it.advertise("bird_ground", 1);

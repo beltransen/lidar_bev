@@ -7,12 +7,21 @@
 #include <memory>
 #include <cmath>
 #include <random>
+#include <map>
+#include <string>
 
 #include <opencv2/opencv.hpp>
 
 #include <ros/package.h>
 #include <pcl_ros/point_cloud.h>
 #include <tf/transform_listener.h>
+
+using namespace std;
+
+
+const string DENSITY_CHANNEL = "density";
+const string INTENSITY_CHANNEL = "intensity";
+const string HEIGHT_DEV_CHANNEL = "stddev_height";
 
 
 class CloudFilter
@@ -36,7 +45,7 @@ public:
     std::shared_ptr<cv::Mat> birdGround(double bv_cell_size, int ground_cell_span, double grid_dim);
 
     /* get the 2D grid birdview of the cloud with 3 channels (height, density, intensity) */
-    std::shared_ptr<cv::Mat> birdView(double cell_size, double max_height, int num_slices, double grid_dim, bool sample_points=false);
+    std::shared_ptr<cv::Mat> birdView(double cell_size, double max_height, std::map<string, int> channels, double grid_dim, bool sample_points=false);
 
     /* Remove all points below the given intensity threshold */
     void filterIntensities(double intensity_threshold);
