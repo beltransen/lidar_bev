@@ -34,6 +34,7 @@ int ground_cell_span;
 int grid_dim;
 int grid_min_x, grid_max_x, grid_min_y, grid_max_y;
 double max_height;
+double min_height;
 
 typedef cv::Vec<char, 6> Vec6c;
 
@@ -178,8 +179,9 @@ int main(int argc, char **argv){
     private_nh.param("grid_min_x", grid_min_x, MIN_CROP); // enable non-square BEV images by cropping on the bottom
     private_nh.param("grid_max_x", grid_max_x, MAX_CROP); // enable non-square BEV images by cropping on the top
     private_nh.param("max_height", max_height, 3.0);
-    private_nh.param("density_slices", density_slices, 0);
-    private_nh.param("intensity_slices", intensity_slices, 0);
+    private_nh.param("min_height", min_height, -9999.9);
+    private_nh.param("density_slices", density_slices, 1);
+    private_nh.param("intensity_slices", intensity_slices, 1);
     private_nh.param("stdev_height_slices", stdev_height_slices, 0);
     private_nh.param("height_threshold", height_threshold, 0.10);
     private_nh.param("cell_size_height_map", cell_size_height_map, 0.25);
@@ -270,7 +272,7 @@ int main(int argc, char **argv){
 
     int frames = 0;
     string velo_dir = package_dir + "/" + kitti_dir + "/" + split_dir + "/velodyne/";
-    // cout << velo_dir << endl;
+
     DIR *dir_velo= opendir(velo_dir.c_str());
     while ((entry = readdir(dir_velo)) != NULL) {
         string pc_dir = velo_dir + entry->d_name;
@@ -378,6 +380,10 @@ int main(int argc, char **argv){
             // Save birdview images
             std::vector<cv::Mat> channels;
             cv::split(final_birdview, channels);
+            if (min_height == -9999.9){
+                channels.erase(channels.begin()); // First channel is min_height
+            }
+
             if (channels.size() == 3 && !split_channels){
                 // Single png image
                 cv::Mat three_ch;

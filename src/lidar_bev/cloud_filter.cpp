@@ -169,7 +169,7 @@ std::shared_ptr<cv::Mat> CloudFilter::birdGround(double bv_cell_size, int ground
     for (int i = 0; i < grid_cells; ++i){
         float* row_ptr = bird_ground->ptr<float>(i);
         for (int j = 0; j < grid_cells; ++j){
-            int x_ground = (double)i/ground_cell_span -.5f; // TODO Review grid access
+            int x_ground = (double)i/ground_cell_span -.5f;
             int y_ground = (double)j/ground_cell_span -.5f;
             *row_ptr++ = median_ground->at<float>(x_ground, y_ground);
         }
@@ -210,9 +210,6 @@ std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_heig
     }
 
     int num_channels = density_slices + intensity_slices + max_height_slices + min_height_slices + stdev_height_slices;
-    int num_slices = 3;
-
-    cout << "Num channels " << num_channels << endl;
 
     // The channels are: intensity, min_height, max_height, density per slice.
     std::shared_ptr<cv::Mat> bird_view(new cv::Mat(grid_cells, grid_cells, CV_8UC(num_channels)));
@@ -224,8 +221,8 @@ std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_heig
 
     int*** density = new int**[grid_cells];
     float*** height = new float**[grid_cells];
-    std::vector<float>*** i_points;
-    std::vector<float>*** z_points;
+    std::vector<float>*** i_points = new vector<float>**[grid_cells];
+    std::vector<float>*** z_points = new vector<float>**[grid_cells];
 
     for (int i = 0; i < grid_cells; ++i)
     {
@@ -237,7 +234,7 @@ std::shared_ptr<cv::Mat> CloudFilter::birdView(double cell_size, double max_heig
         for (int j = 0; j < grid_cells; ++j){
             height[i][j] = new float[2];
             density[i][j] = new int[density_slices];
-            i_points[i][j] = new vector<float>[stdev_height_slices];
+            i_points[i][j] = new vector<float>[intensity_slices];
             z_points[i][j] = new vector<float>[stdev_height_slices];
         }
     }
@@ -408,31 +405,52 @@ void CloudFilter::setVeloToBaseTransform(tf::StampedTransform base_velo_transfor
     base_velo_transform_ = base_velo_transform;
 }
 
-
 void CloudFilter::initMaxPointsMap(int grid_dim, float cell_size, float z_min, float z_max, int num_slices, int planes,
                                    float low_angle, float h_res, float v_res){
     std::stringstream map_path;
     map_path << ros::package::getPath("lidar_bev") << "/maps/";
+
     std::stringstream velo_h;
     velo_h << std::fixed;
     velo_h << std::setprecision(2);
     velo_h << base_velo_transform_.getOrigin().z();
-    std::stringstream python_cmd;
-    python_cmd << ros::package::getPath("lidar_bev") << "/scripts/max_points_map.py";
-    python_cmd << " --maps " << map_path.str();
-    python_cmd << " --map_size " << grid_dim;
-    python_cmd << " --cell_size " << cell_size;
-    python_cmd << " --min_height " << z_min;
-    python_cmd << " --max_height " << z_max;
-    python_cmd << " --num_slices " << num_slices;
-    python_cmd << " --num_planes " << planes;
-    python_cmd << " --velo_minangle " <<  low_angle;
-    python_cmd << " --velo_hres " << h_res;
-    python_cmd << " --velo_vres " << v_res;
-    python_cmd << " --velo_height " << velo_h.str();
-    std::cout << "Required max_points map not found, creating map..." << std::endl;
-    std::cout << python_cmd.str() << std::endl;
-    int python_result = system(python_cmd.str().c_str());
+
+    bool map_exist = true;
+    for (int n = 0; n < num_slices & map_exist; ++n){
+        std::stringstream file_name;
+        file_name << std::fixed;
+        file_name << std::setprecision(2);
+        file_name << map_path.str() << grid_dim << "_";
+        file_name << cell_size << "_";
+        file_name << planes << "_";
+        file_name << velo_h.str();
+        file_name << "_slice" << n << "_map.txt";
+
+        std::ifstream f(file_name.str());
+        if (!f.good()) {
+            std::cout << "Required max_points map not found, creating map..." << std::endl;
+            map_exist = false;
+        }
+    }
+
+    // Compute max points maps if file not exists
+    if(!map_exist){
+        std::stringstream python_cmd;
+        python_cmd << ros::package::getPath("lidar_bev") << "/scripts/max_points_map.py";
+        python_cmd << " --maps " << map_path.str();
+        python_cmd << " --map_size " << grid_dim;
+        python_cmd << " --cell_size " << cell_size;
+        python_cmd << " --min_height " << z_min;
+        python_cmd << " --max_height " << z_max;
+        python_cmd << " --num_slices " << num_slices;
+        python_cmd << " --num_planes " << planes;
+        python_cmd << " --velo_minangle " <<  low_angle;
+        python_cmd << " --velo_hres " << h_res;
+        python_cmd << " --velo_vres " << v_res;
+        python_cmd << " --velo_height " << velo_h.str();
+        std::cout << python_cmd.str() << std::endl;
+        int python_result = system(python_cmd.str().c_str());
+    }
 
     // Resize the matrix
     int grid_cells = grid_dim / cell_size;
@@ -445,6 +463,7 @@ void CloudFilter::initMaxPointsMap(int grid_dim, float cell_size, float z_min, f
       }
     }
 
+    // Load the computed map
     for (int n = 0; n < num_slices; ++n){
         std::stringstream file_name;
         file_name << std::fixed;

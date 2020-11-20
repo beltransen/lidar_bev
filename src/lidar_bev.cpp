@@ -27,7 +27,7 @@ double intensity_threshold;
 
 //floor removal parameters
 bool remove_floor;
-double cell_size,height_threshold,max_height,cell_size_height_map;
+double cell_size,height_threshold,max_height,min_height,cell_size_height_map;
 int grid_dim,grid_dim_height_map;
 int ground_cell_span;
 int density_slices, intensity_slices, stdev_height_slices;
@@ -60,7 +60,16 @@ void cloud_callback(const sensor_msgs::PointCloud2Ptr & cloud_msg){
     bev_channels[HEIGHT_DEV_CHANNEL] = stdev_height_slices;
 
     std::shared_ptr<Mat> bird_view = filter.birdView(cell_size, max_height, bev_channels, grid_dim, false);
-    //std::shared_ptr<Mat> bird_view = filter.birdView(cell_size, max_height, grid_dim, false);
+
+    // Delete min heigh channel if not required
+    cv::Mat final_birdview;
+    std::vector<cv::Mat> channels;
+    cv::split(*bird_view, channels);
+    if (min_height == -9999.9){
+        channels.erase(channels.begin()); // First channel is min_height
+    }
+    cv:merge(channels, final_birdview);
+
 
     int grid_cells = grid_dim / cell_size; // Number of col/rows of the birdview
 
@@ -91,7 +100,7 @@ void cloud_callback(const sensor_msgs::PointCloud2Ptr & cloud_msg){
     cv_bridge::CvImage cv_bird_view;
     cv_bird_view.header = cloud_msg->header;
     cv_bird_view.encoding = "bgr8";
-    cv_bird_view.image = *bird_view;
+    cv_bird_view.image = final_birdview;
     bird_view_pub.publish(cv_bird_view.toImageMsg());
 
     // Publish ground img
@@ -134,8 +143,9 @@ int main(int argc, char *argv[])
     private_nh.param("cell_size_height_map", cell_size_height_map, 0.25);
     private_nh.param("height_threshold", height_threshold, 0.10);
     private_nh.param("max_height", max_height, 3.0);//not used, dont know if useful, there are buses that are quite high
-    private_nh.param("density_slices", density_slices, 0);
-    private_nh.param("intensity_slices", intensity_slices, 0);
+    private_nh.param("min_height", min_height, -9999.9);
+    private_nh.param("density_slices", density_slices, 1);
+    private_nh.param("intensity_slices", intensity_slices, 1);
     private_nh.param("stdev_height_slices", stdev_height_slices, 0);
     public_nh.param("grid_dim", grid_dim, 1000);//300*cell_size = total pointcloud size
     public_nh.param("/lidar_birdview/grid_dim", grid_dim, 1000);//300*cell_size = total pointcloud size
@@ -144,6 +154,13 @@ int main(int argc, char *argv[])
     private_nh.param("v_res", v_res, 0.4);//0.4 for 64 planes
     private_nh.param("max_expected_intensity", max_expected_intensity_, 1.0f);
     private_nh.param("remove_floor", remove_floor, false);
+
+    // Check if ROS-Compatible BEV format
+    int num_channels = density_slices + intensity_slices + stdev_height_slices + 1 + (min_height == -9999.9 ? 0 : 1);
+    if (num_channels != 3){
+        cout << "[ERROR] Invalid BEV encoding. ROS only support up to 3-channel encodings " << endl;
+        return 1;
+    }
 
     // Init the lidar - camera transformation for the filter
     filter.setIntensityNormalization(max_expected_intensity_);
