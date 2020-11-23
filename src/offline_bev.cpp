@@ -382,6 +382,7 @@ int main(int argc, char **argv){
             cv::split(final_birdview, channels);
             if (min_height == -9999.9){
                 channels.erase(channels.begin()); // First channel is min_height
+                channel_names.erase(channel_names.begin());
             }
 
             if (channels.size() == 3 && !split_channels){
