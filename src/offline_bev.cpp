@@ -18,8 +18,8 @@ using namespace std;
 
 CloudFilter filter;
 
-const int MAX_CROP = 70;
-const int MIN_CROP = -70;
+const float MAX_CROP = 70;
+const float MIN_CROP = -70;
 
 double camera_fov;
 
@@ -32,7 +32,7 @@ double height_threshold;
 double cell_size;
 int ground_cell_span;
 int grid_dim;
-int grid_min_x, grid_max_x, grid_min_y, grid_max_y;
+float grid_min_x, grid_max_x, grid_min_y, grid_max_y;
 double max_height;
 double min_height;
 
@@ -284,13 +284,18 @@ int main(int argc, char **argv){
             continue;
         }
 
+        std::vector<std::string> frame_channel_names;
+        for (int i = 0; i < channel_names.size(); ++i){
+            frame_channel_names.push_back(channel_names[i]);
+        }
         if (cloud_ptr != NULL){
             bool already_computed = true;
-            for (int i = 0; i < channel_names.size(); ++i){
+
+            for (int i = 0; i < frame_channel_names.size(); ++i){
                 std::stringstream saving_absolute;
                 saving_absolute << saving_path << "/";
                 saving_absolute << setfill('0') << setw(6) << frame_num;
-                saving_absolute << "_" << channel_names[i] << ".png";
+                saving_absolute << "_" << frame_channel_names[i] << ".png";
                 ifstream f(saving_absolute.str());
                 if(!f.good()){
                     already_computed = false;
@@ -382,7 +387,7 @@ int main(int argc, char **argv){
             cv::split(final_birdview, channels);
             if (min_height == -9999.9){
                 channels.erase(channels.begin()); // First channel is min_height
-                channel_names.erase(channel_names.begin());
+                frame_channel_names.erase(frame_channel_names.begin());
             }
 
             if (channels.size() == 3 && !split_channels){
@@ -402,7 +407,7 @@ int main(int argc, char **argv){
                     stringstream saving_absolute;
                     saving_absolute << saving_path << "/";
                     saving_absolute << setfill('0') << setw(6) << frame_num;
-                    saving_absolute << "_" << channel_names[i] << ".png";
+                    saving_absolute << "_" << frame_channel_names[i] << ".png";
                     cv::imwrite(saving_absolute.str(), channels[i]);
                 }
             }
