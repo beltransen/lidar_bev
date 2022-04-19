@@ -38,7 +38,7 @@ def get_max_points_map(bv_size, cell_size, z_min, z_max, nslices, nplanes, low_a
 
             max_angle = np.arctan(y_max / x_min) if x_min !=0 else np.pi/2
             change_angle = np.arctan(y_min / x_min) if x_min !=0 else np.pi/2
-            min_angle = np.arctan(y_min / x_max) if y_min !=0 else 0
+            min_angle = np.arctan(y_min / x_max) if x_max !=0 else 0
             num_hor_rays = (max_angle-min_angle)/hrad_res
 
             # if x_min == 0 and y_min == 0: # Closest cells takes all points
