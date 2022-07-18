@@ -1,4 +1,4 @@
-*lidar_bev* is a [ROS](https://www.ros.org/) package that computes the Bird's Eye View of a LiDAR pointcloud. It follows the encoding defined in [BirdNet](https://arxiv.org/abs/1805.01195). This representation is also used by the newer [BirdNet+](https://arxiv.org/abs/2003.04188).
+*lidar_bev* is a [ROS](https://www.ros.org/) package that computes the Bird's Eye View of a LiDAR pointcloud. It follows the encoding defined in [BirdNet](https://arxiv.org/abs/1805.01195). This representation is also used by the newer [BirdNet+](https://arxiv.org/abs/2003.04188). Now it works only with plane scanning LiDAR like Velodyne or SICK, NOT with LiDAR, which use a lissajous pattern scan like YUJIN ROBOT LiDAR's.
 
 This package was developed at the [Intelligent Systems Laboratory](http://www.uc3m.es/islab), Universidad Carlos III de Madrid, by Jorge Beltrán, Carlos Guindel, Francisco M. Moreno, Irene Cortés, and Daniel Cruzado.
 
